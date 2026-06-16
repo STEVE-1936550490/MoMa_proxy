@@ -26,26 +26,38 @@ MOMA 平台的 GLM-5.1 模型在 streaming 输出时会先输出 `reasoning_cont
 
 ## 快速开始
 
-### 1. 安装代理
+### 1. 克隆仓库
 
 ```bash
-# 克隆仓库
 git clone https://github.com/STEVE-1936550490/MoMa_proxy.git
 cd MoMa_proxy
+```
 
-# 创建虚拟环境
-python -m venv .venv
-source .venv/bin/activate   # ⚠️ 每次使用前都需要激活
+### 2. 创建虚拟环境（二选一）
 
-# 或使用 conda
-# conda create -n moma_proxy python=3.11 -y
-# conda activate moma_proxy
+#### 方案 A：Anaconda（推荐 ✅）
 
-# 安装依赖
+Conda 环境是全局注册的，激活后**在任何目录下**都可以直接使用 `moma-proxy`、`moma` 等命令，无需每次 cd 到项目目录。
+
+```bash
+conda create -n moma_proxy python=3.11 -y
+conda activate moma_proxy
 pip install -e ".[dev]"
 ```
 
-### 2. 配置
+#### 方案 B：venv
+
+venv 是项目本地虚拟环境，**每次使用前都必须先 cd 到项目目录再激活**，否则找不到已安装的命令。
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -e ".[dev]"
+```
+
+> 💡 **选哪个？** 如果你已安装 Anaconda/Miniconda，强烈推荐方案 A。Conda 环境激活后全局可用，不需要记住项目路径；venv 则要求你每次先 `cd MoMa_proxy && source .venv/bin/activate` 才能使用。
+
+### 3. 配置
 
 复制配置模板并填入你的 API Key：
 
@@ -76,10 +88,22 @@ logging:
 export MOMA_API_KEY="your-api-key-here"
 ```
 
-### 3. 启动代理
+### 4. 启动代理
+
+#### Conda 环境
 
 ```bash
-source .venv/bin/activate   # 激活虚拟环境
+conda activate moma_proxy
+python -m moma_proxy --config config.yaml
+```
+
+> 由于 conda 环境是全局的，你可以在任意目录执行以上命令。如果不在项目目录下，需要指定 config 的完整路径，例如 `python -m moma_proxy --config /path/to/MoMa_proxy/config.yaml`。
+
+#### venv 环境
+
+```bash
+cd /path/to/MoMa_proxy          # ⚠️ 必须先进入项目目录
+source .venv/bin/activate        # ⚠️ 激活虚拟环境
 python -m moma_proxy --config config.yaml
 ```
 
@@ -90,29 +114,30 @@ curl http://localhost:8080/health
 # 应返回 {"status": "healthy"}
 ```
 
-### 4. 在 Codex 中使用（可选）
+### 5. 在 Codex 中使用（可选）
 
 如果你想让 Codex 通过此代理使用 GLM-5.1：
 
 ```bash
 # 确保 Codex CLI 已安装
 npm install -g @openai/codex
-
-# 激活虚拟环境
-source .venv/bin/activate
-
-# 一键注册 MOMA profile 到 Codex
-moma-proxy install-codex
-
-# 使用 MOMA Codex
-source .venv/bin/activate
-moma
-
-# 默认 Codex（GPT）不受影响
-codex
 ```
 
-> **⚠️ 提醒：** `moma`、`moma-proxy` 等命令都安装在虚拟环境中，每次使用前需要 `source .venv/bin/activate`，否则会提示 command not found。
+**安装 Codex profile：**
+
+| 环境 | 命令 |
+|------|------|
+| **Conda** | `conda activate moma_proxy && moma-proxy install-codex` |
+| **venv** | `cd /path/to/MoMa_proxy && source .venv/bin/activate && moma-proxy install-codex` |
+
+**启动 MOMA Codex：**
+
+| 环境 | 命令 |
+|------|------|
+| **Conda** | `conda activate moma_proxy && moma` |
+| **venv** | `cd /path/to/MoMa_proxy && source .venv/bin/activate && moma` |
+
+> 默认 Codex（GPT）不受影响，仍通过 `codex` 命令使用。
 
 如果你的代理不在默认地址 `127.0.0.1:8080`：
 
@@ -178,23 +203,30 @@ for chunk in response:
         print(chunk.choices[0].delta.content, end="")
 ```
 
-## CLI 命令
+## CLI 命令速查
+
+### Conda 环境
 
 ```bash
-# 激活虚拟环境（每次使用前必须执行）
-source .venv/bin/activate
+conda activate moma_proxy                          # 激活环境（任意目录）
 
-# 启动代理服务器
-moma-proxy serve --config config.yaml
-# 或直接
-python -m moma_proxy --config config.yaml
+python -m moma_proxy --config config.yaml           # 启动代理
+moma-proxy serve --config config.yaml               # 同上（等价）
 
-# 安装 Codex MOMA profile
-moma-proxy install-codex [--base-url URL] [--codex-home PATH]
+moma-proxy install-codex                            # 安装 Codex MOMA profile
+moma                                                # 启动 MOMA Codex
+```
 
-# 通过 MOMA 启动 Codex
-moma
-# 等价于 codex -p moma，自动注入客户端侧 API key
+### venv 环境
+
+```bash
+cd /path/to/MoMa_proxy && source .venv/bin/activate  # 进入目录 + 激活环境
+
+python -m moma_proxy --config config.yaml              # 启动代理
+moma-proxy serve --config config.yaml                  # 同上（等价）
+
+moma-proxy install-codex                               # 安装 Codex MOMA profile
+moma                                                   # 启动 MOMA Codex
 ```
 
 ## 配置选项
