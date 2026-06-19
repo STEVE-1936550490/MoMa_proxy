@@ -6,20 +6,33 @@ import time
 import uuid
 from collections import deque
 from dataclasses import asdict, dataclass, field
-from typing import Literal
+from typing import Any, Literal
 
 from aiohttp import web
 
 TokenUsageSource = Literal["upstream", "estimated", "unavailable"]
 
-APP_CONFIG = web.AppKey("config", object)
-APP_REQUEST_LOGS = web.AppKey("request_logs", object)
-REQ_CLIENT_PROTOCOL = web.RequestKey("client_protocol", str)
-REQ_MODEL = web.RequestKey("model", str)
-REQ_PROVIDER_PROTOCOL = web.RequestKey("provider_protocol", str)
-REQ_REQUEST_ID = web.RequestKey("request_id", str)
-REQ_STREAM_STATE = web.RequestKey("stream_state", str)
-REQ_TOKEN_USAGE = web.RequestKey("token_usage", object)
+
+def _aiohttp_key(
+    kind: str,
+    name: str,
+    value_type: type,
+) -> Any:
+    """Return typed aiohttp keys when available, otherwise plain string keys."""
+    key_factory = getattr(web, kind, None)
+    if key_factory is None:
+        return name
+    return key_factory(name, value_type)
+
+
+APP_CONFIG = _aiohttp_key("AppKey", "config", object)
+APP_REQUEST_LOGS = _aiohttp_key("AppKey", "request_logs", object)
+REQ_CLIENT_PROTOCOL = _aiohttp_key("RequestKey", "client_protocol", str)
+REQ_MODEL = _aiohttp_key("RequestKey", "model", str)
+REQ_PROVIDER_PROTOCOL = _aiohttp_key("RequestKey", "provider_protocol", str)
+REQ_REQUEST_ID = _aiohttp_key("RequestKey", "request_id", str)
+REQ_STREAM_STATE = _aiohttp_key("RequestKey", "stream_state", str)
+REQ_TOKEN_USAGE = _aiohttp_key("RequestKey", "token_usage", object)
 
 
 @dataclass(frozen=True)
