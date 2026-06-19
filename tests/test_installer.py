@@ -156,3 +156,5 @@ def test_format_install_summary_reports_missing_codex_and_claude(tmp_path: Path)
     assert (
         "npm install -g @anthropic-ai/claude-code --registry https://registry.npmmirror.com" in text
     )
+    assert "supported `/v1/messages` compatibility path" in text
+    assert "planned for a later phase" not in text

@@ -175,3 +175,32 @@ def test_configure_provider_interactive_uses_prompts(tmp_path: Path) -> None:
     assert summary.provider == "custom"
     assert data["providers"]["custom"]["api_key_env"] == "CUSTOM_API_KEY"
     assert data["server"]["port"] == 18000
+
+
+def test_configure_provider_interactive_treats_key_in_env_prompt_as_direct_key(
+    tmp_path: Path,
+) -> None:
+    config_path = tmp_path / "config.yaml"
+    answers = iter(
+        [
+            "custom",
+            "https://api.example.com/v1",
+            "custom-model",
+            "openai_chat",
+            "codex_responses",
+            "Nz2q3oOejp7UReRYVct9h3_key",
+            "127.0.0.1",
+            "18000",
+        ]
+    )
+
+    summary = configure_provider(
+        ConfigureOptions(config_path=config_path),
+        input_func=lambda prompt: next(answers),
+        secret_func=lambda prompt: "",
+    )
+
+    data = yaml.safe_load(config_path.read_text(encoding="utf-8"))
+    assert summary.api_key_source == "direct"
+    assert data["providers"]["custom"]["api_key"] == "Nz2q3oOejp7UReRYVct9h3_key"
+    assert "api_key_env" not in data["providers"]["custom"]

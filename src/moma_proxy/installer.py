@@ -191,8 +191,8 @@ def format_install_summary(summary: InstallSummary) -> str:
         )
     if "claude" in missing:
         lines.append(
-            "- Note: Claude Code protocol support is planned for a later phase; "
-            f"install the CLI with `npm install -g {CLAUDE_CODE_PACKAGE} "
+            "- Next: install Claude Code CLI for the supported `/v1/messages` "
+            f"compatibility path with `npm install -g {CLAUDE_CODE_PACKAGE} "
             f"--registry {summary.npm_registry}` or rerun with `--install-claude-code`."
         )
     lines.append("- Default Codex remains unchanged; use `moma` for the MOMA profile.")

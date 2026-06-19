@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import getpass
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
@@ -87,6 +88,11 @@ def _legacy_upstream(data: dict) -> dict:
     return upstream if isinstance(upstream, dict) else {}
 
 
+def _looks_like_env_var_name(value: str) -> bool:
+    """Return whether a prompted value looks like an environment variable name."""
+    return bool(re.fullmatch(r"[A-Z_][A-Z0-9_]*", value))
+
+
 def configure_provider(
     options: ConfigureOptions,
     *,
@@ -129,9 +135,16 @@ def configure_provider(
             options.client_protocol or default_client_protocol,
             input_func,
         )
-        api_key_env = _prompt(
-            "API key environment variable", api_key_env or default_api_key_env, input_func
+        prompted_api_key_env = _prompt(
+            "API key environment variable name (not the key itself)",
+            api_key_env or default_api_key_env,
+            input_func,
         )
+        if _looks_like_env_var_name(prompted_api_key_env):
+            api_key_env = prompted_api_key_env
+        else:
+            api_key = prompted_api_key_env
+            api_key_env = None
         direct_key = secret_func("Direct API key (optional, blank to use env var): ").strip()
         api_key = direct_key or api_key
         default_host = _prompt("Server host", options.host or default_host, input_func)

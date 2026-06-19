@@ -103,6 +103,8 @@ agent-bridge configure --config config.yaml --no-interactive \
 
 `configure` 默认会同步 Codex 的 `moma` profile 到当前本地代理地址和模型；如只想写 `config.yaml`，可加 `--skip-codex-profile`。
 
+`api_key_env` 填的是环境变量名，例如 `MOMA_API_KEY`，不是 API key 本身。如果要直接写 key，请使用 `api_key` 字段；交互式配置里如果误把真实 key 输入到环境变量提示处，AgentBridge 会尽量识别并保存为直接 key。
+
 编辑 `config.yaml`：
 
 ```yaml
