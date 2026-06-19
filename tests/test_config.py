@@ -169,3 +169,57 @@ def test_config_file_not_found():
     """Test error when config file doesn't exist."""
     with pytest.raises(FileNotFoundError):
         Config.from_file("/nonexistent/config.yaml")
+
+
+def test_apply_provider_updates_default_model_to_provider_model() -> None:
+    """Switching providers with apply_provider updates default_model."""
+    config = Config(
+        providers={
+            "moma_glm51": ProviderConfig(
+                base_url="https://moma.example.com/v1",
+                api_key="key1",
+                model="ZHIPU/GLM-5.1",
+                provider_api="openai_chat",
+                client_protocol="codex_responses",
+            ),
+            "moma_glm52": ProviderConfig(
+                base_url="https://moma.example.com/v1",
+                api_key="key2",
+                model="ZHIPU/GLM-5.2",
+                provider_api="openai_chat",
+                client_protocol="codex_responses",
+            ),
+        }
+    )
+
+    # Initially uses first provider
+    assert config.default_model == "ZHIPU/GLM-5.1"
+
+    # Switch to second provider
+    config.apply_provider("moma_glm52")
+    assert config.default_model == "ZHIPU/GLM-5.2"
+    assert config.active_provider == "moma_glm52"
+
+
+def test_config_default_model_overrides_client_model() -> None:
+    """The handler should use config.default_model, not the client-sent model.
+
+    This is the core fix for the bug where -p <platform> was ignored because
+    the Codex client always sent the same hardcoded model in the request body.
+    """
+    config = Config(
+        providers={
+            "moma_glm52": ProviderConfig(
+                base_url="https://moma.example.com/v1",
+                api_key="key2",
+                model="ZHIPU/GLM-5.2",
+                provider_api="openai_chat",
+                client_protocol="codex_responses",
+            ),
+        }
+    )
+    config.apply_provider("moma_glm52")
+
+    # After apply_provider, default_model should be the provider's model
+    assert config.default_model == "ZHIPU/GLM-5.2"
+    # The handler should use this instead of the client's hardcoded model

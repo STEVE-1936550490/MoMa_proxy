@@ -195,7 +195,7 @@ def test_main_start_uses_run_defaults(tmp_path: Path) -> None:
                 "providers": {
                     "moma_glm51": {
                         "base_url": "https://moma.example.com/v1",
-                        "api_key_env": "MOMA_API_KEY",
+                        "api_key_env": "AGENT_BRIDGE_API_KEY",
                         "model": "ZHIPU/GLM-5.1",
                         "provider_api": "openai_chat",
                         "client_protocol": "codex_responses",
@@ -231,7 +231,7 @@ def test_agent_bridge_options_without_subcommand_default_to_start(tmp_path: Path
             {
                 "upstream": {
                     "base_url": "https://moma.example.com/v1",
-                    "api_key": "${MOMA_API_KEY}",
+                    "api_key": "${AGENT_BRIDGE_API_KEY}",
                 },
                 "server": {"host": "127.0.0.1", "port": 19003},
             }
@@ -252,3 +252,165 @@ def test_agent_bridge_options_without_subcommand_default_to_start(tmp_path: Path
     assert result == 0
     assert captured[0].config_path == config_path
     assert captured[0].client == "codex"
+
+
+def test_sync_codex_profile_model_updates_profile_when_provider_changes(tmp_path: Path) -> None:
+    """When -p selects a different provider, the Codex profile model is updated."""
+    from agent_bridge.codex import CodexInstallConfig, profile_content, default_codex_home
+    from agent_bridge.launcher import _sync_codex_profile_model, RunConfig
+
+    # Create a config with two providers using different models
+    config_data = {
+        "active_provider": "moma_glm51",
+        "providers": {
+            "moma_glm51": {
+                "base_url": "https://moma.example.com/v1",
+                "api_key": "test-key",
+                "model": "ZHIPU/GLM-5.1",
+                "provider_api": "openai_chat",
+                "client_protocol": "codex_responses",
+            },
+            "moma_glm52": {
+                "base_url": "https://moma.example.com/v1",
+                "api_key": "test-key",
+                "model": "ZHIPU/GLM-5.2",
+                "provider_api": "openai_chat",
+                "client_protocol": "codex_responses",
+            },
+        },
+        "server": {"host": "127.0.0.1", "port": 17681},
+    }
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text(yaml.safe_dump(config_data), encoding="utf-8")
+
+    # First, install a profile with the default model (GLM-5.1)
+    codex_home = tmp_path / "codex_home"
+    install_config = CodexInstallConfig(
+        codex_home=codex_home,
+        profile="agent_bridge",
+        model="ZHIPU/GLM-5.1",
+        base_url="http://127.0.0.1:17681/v1",
+        env_key="AGENT_BRIDGE_API_KEY",
+    )
+    install_config.profile_path.parent.mkdir(parents=True, exist_ok=True)
+    install_config.profile_path.write_text(profile_content(install_config), encoding="utf-8")
+
+    # Verify initial model
+    initial_content = install_config.profile_path.read_text(encoding="utf-8")
+    assert 'model = "ZHIPU/GLM-5.1"' in initial_content
+
+    # Now run sync with -p moma_glm52
+    run_config = RunConfig(
+        config_path=config_path,
+        host="127.0.0.1",
+        port=17681,
+        client="codex",
+        platform="moma_glm52",
+        codex_profile="agent_bridge",
+    )
+
+    # Monkey-patch default_codex_home to use our temp dir
+    import agent_bridge.launcher as launcher_mod
+    original_codex_home = launcher_mod.default_codex_home
+    launcher_mod.default_codex_home = lambda: codex_home
+    try:
+        _sync_codex_profile_model(run_config)
+    finally:
+        launcher_mod.default_codex_home = original_codex_home
+
+    # Verify model was updated
+    updated_content = install_config.profile_path.read_text(encoding="utf-8")
+    assert 'model = "ZHIPU/GLM-5.2"' in updated_content
+    assert 'model = "ZHIPU/GLM-5.1"' not in updated_content
+
+
+def test_sync_codex_profile_model_skips_when_model_matches(tmp_path: Path) -> None:
+    """When the provider model already matches the profile, no write occurs."""
+    from agent_bridge.codex import CodexInstallConfig, profile_content
+    from agent_bridge.launcher import _sync_codex_profile_model, RunConfig
+
+    config_data = {
+        "active_provider": "moma_glm51",
+        "providers": {
+            "moma_glm51": {
+                "base_url": "https://moma.example.com/v1",
+                "api_key": "test-key",
+                "model": "ZHIPU/GLM-5.1",
+                "provider_api": "openai_chat",
+                "client_protocol": "codex_responses",
+            },
+        },
+        "server": {"host": "127.0.0.1", "port": 17681},
+    }
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text(yaml.safe_dump(config_data), encoding="utf-8")
+
+    codex_home = tmp_path / "codex_home"
+    install_config = CodexInstallConfig(
+        codex_home=codex_home,
+        profile="agent_bridge",
+        model="ZHIPU/GLM-5.1",
+        base_url="http://127.0.0.1:17681/v1",
+        env_key="AGENT_BRIDGE_API_KEY",
+    )
+    install_config.profile_path.parent.mkdir(parents=True, exist_ok=True)
+    install_config.profile_path.write_text(profile_content(install_config), encoding="utf-8")
+
+    # Record mtime before sync
+    import time
+    mtime_before = install_config.profile_path.stat().st_mtime
+    time.sleep(0.05)
+
+    run_config = RunConfig(
+        config_path=config_path,
+        host="127.0.0.1",
+        port=17681,
+        client="codex",
+        platform=None,  # Use default provider
+        codex_profile="agent_bridge",
+    )
+
+    import agent_bridge.launcher as launcher_mod
+    original_codex_home = launcher_mod.default_codex_home
+    launcher_mod.default_codex_home = lambda: codex_home
+    try:
+        _sync_codex_profile_model(run_config)
+    finally:
+        launcher_mod.default_codex_home = original_codex_home
+
+    # Profile should NOT have been rewritten (same mtime)
+    mtime_after = install_config.profile_path.stat().st_mtime
+    assert mtime_before == mtime_after
+
+
+def test_sync_codex_profile_model_skips_non_codex_client(tmp_path: Path) -> None:
+    """_sync_codex_profile_model does nothing for non-codex clients."""
+    from agent_bridge.launcher import _sync_codex_profile_model, RunConfig
+
+    config_data = {
+        "active_provider": "moma_glm51",
+        "providers": {
+            "moma_glm51": {
+                "base_url": "https://moma.example.com/v1",
+                "api_key": "test-key",
+                "model": "ZHIPU/GLM-5.1",
+                "provider_api": "openai_chat",
+                "client_protocol": "codex_responses",
+            },
+        },
+        "server": {"host": "127.0.0.1", "port": 17681},
+    }
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text(yaml.safe_dump(config_data), encoding="utf-8")
+
+    # Claude client - should be a no-op
+    run_config = RunConfig(
+        config_path=config_path,
+        host="127.0.0.1",
+        port=17681,
+        client="claude",
+        platform="moma_glm51",
+    )
+
+    # Should not raise or write anything
+    _sync_codex_profile_model(run_config)

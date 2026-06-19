@@ -6,7 +6,7 @@ upstream:
   # GLM platform API endpoint
   base_url: "https://moma.cmecloud.cn/v1"
   # API key - either set directly or use environment variable expansion
-  api_key: "${MOMA_API_KEY}"
+  api_key: "${AGENT_BRIDGE_API_KEY}"
   # Or set directly (NOT recommended for git-tracked files):
   # api_key: "your-api-key-here"
 
@@ -17,7 +17,7 @@ default_model: "ZHIPU/GLM-5.1"
 providers:
   moma_glm51:
     base_url: "https://moma.cmecloud.cn/v1"
-    api_key_env: "MOMA_API_KEY"
+    api_key_env: "AGENT_BRIDGE_API_KEY"
     model: "ZHIPU/GLM-5.1"
     provider_api: "openai_chat"       # openai_chat | openai_responses | anthropic_messages
     client_protocol: "codex_responses" # codex_responses | anthropic

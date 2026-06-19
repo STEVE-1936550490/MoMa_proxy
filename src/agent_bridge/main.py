@@ -131,7 +131,7 @@ def _install_codex_from_args(args: argparse.Namespace) -> int:
     config_path, profile_path = install_codex_profile(install_config)
     print(f"Updated Codex provider: {config_path}")
     print(f"Updated Codex profile: {profile_path}")
-    print(f"Run MOMA Codex with: moma")
+    print(f"Run Codex with AgentBridge: agent-bridge start")
     print(f"Default Codex remains: codex")
     return 0
 

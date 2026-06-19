@@ -1,4 +1,4 @@
-"""Async HTTP server for MOMA proxy."""
+"""Async HTTP server for AgentBridge."""
 
 import logging
 import time

@@ -16,7 +16,7 @@ from agent_bridge.main import main
 def test_ensure_config_file_creates_from_template(tmp_path: Path) -> None:
     template = tmp_path / "config.yaml.example"
     config = tmp_path / "config.yaml"
-    template.write_text("upstream:\n  api_key: ${MOMA_API_KEY}\n", encoding="utf-8")
+    template.write_text("upstream:\n  api_key: ${AGENT_BRIDGE_API_KEY}\n", encoding="utf-8")
 
     created = ensure_config_file(config, template)
 
@@ -40,7 +40,7 @@ def test_main_install_creates_config_and_codex_profile(tmp_path: Path) -> None:
     template = tmp_path / "config.yaml.example"
     config = tmp_path / "config.yaml"
     codex_home = tmp_path / "codex"
-    template.write_text("upstream:\n  api_key: ${MOMA_API_KEY}\n", encoding="utf-8")
+    template.write_text("upstream:\n  api_key: ${AGENT_BRIDGE_API_KEY}\n", encoding="utf-8")
 
     result = main(
         [
@@ -64,7 +64,7 @@ def test_run_local_install_can_install_codex_cli_with_npm(tmp_path: Path) -> Non
     template = tmp_path / "config.yaml.example"
     config = tmp_path / "config.yaml"
     codex_home = tmp_path / "codex"
-    template.write_text("upstream:\n  api_key: ${MOMA_API_KEY}\n", encoding="utf-8")
+    template.write_text("upstream:\n  api_key: ${AGENT_BRIDGE_API_KEY}\n", encoding="utf-8")
 
     def fake_which(command: str) -> str | None:
         return "/usr/bin/npm" if command == "npm" else None
@@ -99,7 +99,7 @@ def test_run_local_install_can_install_claude_code_with_npm(tmp_path: Path) -> N
     template = tmp_path / "config.yaml.example"
     config = tmp_path / "config.yaml"
     codex_home = tmp_path / "codex"
-    template.write_text("upstream:\n  api_key: ${MOMA_API_KEY}\n", encoding="utf-8")
+    template.write_text("upstream:\n  api_key: ${AGENT_BRIDGE_API_KEY}\n", encoding="utf-8")
 
     def fake_which(command: str) -> str | None:
         return "/usr/bin/npm" if command == "npm" else None
@@ -135,7 +135,7 @@ def test_format_install_summary_reports_missing_codex_and_claude(tmp_path: Path)
     template = tmp_path / "config.yaml.example"
     config = tmp_path / "config.yaml"
     codex_home = tmp_path / "codex"
-    template.write_text("upstream:\n  api_key: ${MOMA_API_KEY}\n", encoding="utf-8")
+    template.write_text("upstream:\n  api_key: ${AGENT_BRIDGE_API_KEY}\n", encoding="utf-8")
 
     with patch("agent_bridge.installer.detect_tools") as detect:
         detect.return_value = [

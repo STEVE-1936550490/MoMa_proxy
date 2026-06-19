@@ -14,7 +14,7 @@ from .config import ClientProtocol, ProviderApi
 
 DEFAULT_PROVIDER_NAME = "moma_glm51"
 DEFAULT_BASE_URL = "https://moma.cmecloud.cn/v1"
-DEFAULT_API_KEY_ENV = "MOMA_API_KEY"
+DEFAULT_API_KEY_ENV = "AGENT_BRIDGE_API_KEY"
 DEFAULT_MODEL = "ZHIPU/GLM-5.1"
 DEFAULT_PROVIDER_API: ProviderApi = "openai_chat"
 DEFAULT_CLIENT_PROTOCOL: ClientProtocol = "codex_responses"

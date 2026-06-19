@@ -1,4 +1,4 @@
-"""OpenAI protocol handler for MOMA proxy."""
+"""OpenAI protocol handler for AgentBridge."""
 
 import json
 import logging
@@ -461,8 +461,12 @@ class OpenAIHandler:
         if isinstance(body, web.Response):
             return body
 
+        # Override the client model with the provider-configured model so that
+        # -p <platform> selections take effect regardless of the client profile.
+        model = self.config.default_model
+        body["model"] = model
+
         url, headers, payload = self._prepare_upstream_request(request, body)
-        model = body.get("model", self.config.default_model)
         request[REQ_MODEL] = model
         request[REQ_CLIENT_PROTOCOL] = "openai_chat"
         request[REQ_PROVIDER_PROTOCOL] = "openai_chat"
@@ -535,9 +539,11 @@ class OpenAIHandler:
         if not prompt:
             return self._error_response("Missing prompt", 400)
 
+        # Override the client model with the provider-configured model so that
+        # -p <platform> selections take effect regardless of the client profile.
         # Wrap prompt in messages format for upstream
         chat_body = {
-            "model": body.get("model", self.config.default_model),
+            "model": self.config.default_model,
             "messages": [{"role": "user", "content": prompt}],
             "max_tokens": body.get("max_tokens"),
             "temperature": body.get("temperature"),
@@ -640,8 +646,10 @@ class OpenAIHandler:
         if not converted_messages:
             return self._error_response("Empty input", 400)
 
+        # Override the client model with the provider-configured model so that
+        # -p <platform> selections take effect regardless of the client profile.
         chat_body = {
-            "model": body.get("model", self.config.default_model),
+            "model": self.config.default_model,
             "messages": converted_messages,  # Use converted messages
             "max_tokens": body.get("max_tokens"),
             "temperature": body.get("temperature"),
@@ -719,8 +727,10 @@ class OpenAIHandler:
         if not messages:
             return self._error_response("Empty messages", 400)
 
+        # Override the client model with the provider-configured model so that
+        # -p <platform> selections take effect regardless of the client profile.
         chat_body = {
-            "model": body.get("model", self.config.default_model),
+            "model": self.config.default_model,
             "messages": messages,
             "max_tokens": body.get("max_tokens"),
             "temperature": body.get("temperature"),

@@ -1,4 +1,4 @@
-"""Configuration handling for MOMA proxy."""
+"""Configuration handling for AgentBridge."""
 
 import os
 from dataclasses import dataclass, field

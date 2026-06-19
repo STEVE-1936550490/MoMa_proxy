@@ -1,4 +1,4 @@
-"""Cross-platform installation helpers for MOMA proxy."""
+"""Cross-platform installation helpers for AgentBridge."""
 
 from __future__ import annotations
 

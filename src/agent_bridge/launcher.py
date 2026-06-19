@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -13,7 +14,8 @@ import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
 
-from .codex import DEFAULT_ENV_KEY, DEFAULT_PROFILE
+from .codex import DEFAULT_ENV_KEY, DEFAULT_PROFILE, CodexInstallConfig, profile_content, default_codex_home
+from .config import Config
 
 
 @dataclass(frozen=True)
@@ -146,6 +148,51 @@ def _print_proxy_log_tail(log_file, line_count: int = 40) -> None:
         print(line.rstrip(), file=sys.stderr)
 
 
+def _sync_codex_profile_model(config: RunConfig) -> None:
+    """Update the Codex profile model to match the selected provider.
+
+    When the user selects a provider with -p, the proxy correctly switches
+    the upstream model, but the Codex client profile may still reference the
+    old model. This function rewrites the profile so the client sends the
+    correct model in its requests.
+    """
+    if config.client != "codex":
+        return
+
+    # Load provider config to determine the correct model
+    try:
+        bridge_config = Config.from_file(config.config_path)
+        provider_name = config.platform  # may be None
+        if provider_name:
+            bridge_config.apply_provider(provider_name)
+        provider_model = bridge_config.default_model
+    except (FileNotFoundError, ValueError):
+        return
+
+    # Only rewrite the profile if the model differs from what's installed
+    codex_home = default_codex_home()
+    profile_path = codex_home / f"{config.codex_profile}.config.toml"
+    if profile_path.exists():
+        existing = profile_path.read_text(encoding="utf-8")
+        # Quick check: if the model line already matches, skip the write
+        match = re.search(r'^model\s*=\s*"[^"]*"', existing, re.MULTILINE)
+        if match and match.group() == f'model = "{provider_model}"':
+            return
+
+    # Rewrite profile with the correct model
+    install_config = CodexInstallConfig(
+        codex_home=codex_home,
+        profile=config.codex_profile,
+        provider="agent_bridge",
+        model=provider_model,
+        base_url=f"http://127.0.0.1:{config.port}/v1",
+        env_key=config.codex_env_key,
+    )
+    profile_path = install_config.profile_path
+    profile_path.parent.mkdir(parents=True, exist_ok=True)
+    profile_path.write_text(profile_content(install_config), encoding="utf-8")
+
+
 def run_managed_client(config: RunConfig) -> int:
     """Start proxy, wait for health, run client, then clean up proxy."""
     proxy_command = build_proxy_command(config)
@@ -170,6 +217,9 @@ def run_managed_client(config: RunConfig) -> int:
                 print(f"Error: proxy did not become healthy at {url}", file=sys.stderr)
                 _print_proxy_log_tail(proxy_log)
                 return 1
+
+            # Sync the Codex profile model so the client sends the right model
+            _sync_codex_profile_model(config)
 
             client_command = build_client_command(config)
             print(f"Starting {config.client}: {' '.join(client_command)}", file=sys.stderr)

@@ -60,7 +60,7 @@ def test_main_configure_no_interactive(tmp_path: Path) -> None:
             "--base-url",
             "https://moma.example.com/v1",
             "--api-key-env",
-            "MOMA_API_KEY",
+            "AGENT_BRIDGE_API_KEY",
             "--model",
             "ZHIPU/GLM-5.1",
             "--provider-api",
@@ -74,7 +74,7 @@ def test_main_configure_no_interactive(tmp_path: Path) -> None:
     data = yaml.safe_load(config_path.read_text(encoding="utf-8"))
     assert result == 0
     assert data["providers"]["moma_glm51"]["base_url"] == "https://moma.example.com/v1"
-    assert data["providers"]["moma_glm51"]["api_key_env"] == "MOMA_API_KEY"
+    assert data["providers"]["moma_glm51"]["api_key_env"] == "AGENT_BRIDGE_API_KEY"
     assert (codex_home / "config.toml").exists()
     assert (codex_home / "agent_bridge.config.toml").exists()
 

@@ -78,7 +78,7 @@ def _provider_block(config: CodexInstallConfig) -> str:
     )
 
 
-def _profile_content(config: CodexInstallConfig) -> str:
+def profile_content(config: CodexInstallConfig) -> str:
     return "\n".join(
         [
             f"model = {_toml_quote(config.model)}",
@@ -109,7 +109,7 @@ def install_codex_profile(config: CodexInstallConfig) -> tuple[Path, Path]:
         render_codex_config(existing, config),
         encoding="utf-8",
     )
-    config.profile_path.write_text(_profile_content(config), encoding="utf-8")
+    config.profile_path.write_text(profile_content(config), encoding="utf-8")
     return config.config_path, config.profile_path
 
 

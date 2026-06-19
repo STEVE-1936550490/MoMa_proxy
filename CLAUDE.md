@@ -20,7 +20,15 @@ Prefer new names in all new code, tests, and docs.
 - Codex client protocol -> OpenAI Chat Completions provider protocol
 - Claude Code Anthropic Messages client protocol -> OpenAI Chat Completions provider protocol
 
-MOMA GLM-5.x is one OpenAI Chat Completions-compatible provider profile.
+GLM-5.x is one OpenAI Chat Completions-compatible provider profile.
+
+## Provider Model Override
+
+When a provider is selected with `-p <platform>`, the proxy **overrides** the
+client-sent model with the provider's configured model. This ensures that
+switching providers takes effect regardless of what model the client profile
+hardcodes. The `run` command also syncs the provider's model to the Codex
+profile before launching the client.
 
 ## Development Commands
 
