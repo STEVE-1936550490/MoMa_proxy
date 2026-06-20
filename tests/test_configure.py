@@ -207,3 +207,46 @@ def test_configure_provider_interactive_treats_key_in_env_prompt_as_direct_key(
     assert summary.api_key_source == "direct"
     assert data["providers"]["custom"]["api_key"] == "Nz2q3oOejp7UReRYVct9h3_key"
     assert "api_key_env" not in data["providers"]["custom"]
+
+
+def test_main_configure_resolves_config_from_package_dir(tmp_path: Path, monkeypatch) -> None:
+    """configure --config with a bare filename should search known paths."""
+    import os
+
+    config_path = tmp_path / "config.yaml"
+    # Write a valid config so resolve_config_path can find it
+    import yaml
+
+    config_data = {
+        "active_provider": "moma_glm51",
+        "providers": {
+            "moma_glm51": {
+                "base_url": "https://moma.example.com/v1",
+                "api_key": "test",
+                "model": "ZHIPU/GLM-5.1",
+                "provider_api": "openai_chat",
+                "client_protocol": "codex_responses",
+            },
+        },
+        "server": {"host": "127.0.0.1", "port": 17681},
+    }
+    config_path.write_text(yaml.safe_dump(config_data), encoding="utf-8")
+
+    # Change CWD to temp dir so the config is found
+    monkeypatch.chdir(tmp_path)
+    codex_home = tmp_path / "codex"
+
+    result = main(
+        [
+            "configure",
+            "--config",
+            "config.yaml",
+            "--codex-home",
+            str(codex_home),
+            "--provider",
+            "moma_glm51",
+            "--no-interactive",
+        ]
+    )
+
+    assert result == 0

@@ -333,3 +333,15 @@ def test_resolve_config_path_returns_cwd_default_when_not_found(tmp_path: Path, 
     result = resolve_config_path("nonexistent_test_config_12345.yaml")
     assert result == empty_dir / "nonexistent_test_config_12345.yaml"
     assert not result.exists()  # It doesn't exist, but the path is returned for error reporting
+
+
+def test_resolve_config_path_with_relative_nonexistent_returns_cwd() -> None:
+    """A relative filename that doesn't exist anywhere should resolve to CWD."""
+    import os
+
+    from agent_bridge.config import resolve_config_path
+
+    result = resolve_config_path("no_such_file_abc.yaml")
+    # Should return CWD-based path
+    assert result == Path.cwd() / "no_such_file_abc.yaml"
+    assert not result.exists()

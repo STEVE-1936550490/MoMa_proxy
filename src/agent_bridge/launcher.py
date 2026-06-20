@@ -39,6 +39,7 @@ class RunConfig:
     model: str | None = None
     provider_api: str | None = None
     client_protocol: str | None = None
+    reasoning_mode: str | None = None
     codex_profile: str = DEFAULT_PROFILE
     codex_env_key: str = DEFAULT_ENV_KEY
     codex_api_key: str = "dummy"
@@ -84,6 +85,7 @@ def build_proxy_command(config: RunConfig) -> list[str]:
     _append_optional_arg(command, "--model", config.model)
     _append_optional_arg(command, "--provider-api", config.provider_api)
     _append_optional_arg(command, "--client-protocol", client_protocol)
+    _append_optional_arg(command, "--reasoning-mode", config.reasoning_mode)
     return command
 
 

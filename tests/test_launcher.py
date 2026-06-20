@@ -417,3 +417,33 @@ def test_sync_codex_profile_model_skips_non_codex_client(tmp_path: Path) -> None
 
     # Should not raise or write anything
     _sync_codex_profile_model(run_config)
+
+
+def test_build_proxy_command_includes_reasoning_mode(tmp_path: Path) -> None:
+    """--reasoning-mode must be forwarded to the proxy subprocess."""
+    config = RunConfig(
+        config_path=tmp_path / "config.yaml",
+        host="127.0.0.1",
+        port=17681,
+        reasoning_mode="thinking",
+    )
+
+    command = build_proxy_command(config)
+
+    assert "--reasoning-mode" in command
+    idx = command.index("--reasoning-mode")
+    assert command[idx + 1] == "thinking"
+
+
+def test_build_proxy_command_omits_reasoning_mode_when_none(tmp_path: Path) -> None:
+    """When reasoning_mode is None, the flag should not appear."""
+    config = RunConfig(
+        config_path=tmp_path / "config.yaml",
+        host="127.0.0.1",
+        port=17681,
+        reasoning_mode=None,
+    )
+
+    command = build_proxy_command(config)
+
+    assert "--reasoning-mode" not in command

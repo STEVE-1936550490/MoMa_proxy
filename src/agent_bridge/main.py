@@ -143,6 +143,19 @@ def _install_codex_from_args(args: argparse.Namespace) -> int:
     return 0
 
 
+def _resolve_or_cwd_config(config_arg: str) -> Path:
+    """Resolve config path for commands that may create a new file.
+
+    If the file already exists in a search location, return that resolved path.
+    Otherwise, return the CWD-relative path so a new file can be created there.
+    """
+    resolved = resolve_config_path(config_arg)
+    if resolved.exists():
+        return resolved
+    # File doesn't exist yet – use CWD-relative for new-file creation
+    return Path(config_arg).expanduser()
+
+
 def _install_from_args(args: argparse.Namespace) -> int:
     install_config = CodexInstallConfig(
         codex_home=Path(args.codex_home).expanduser(),
@@ -154,18 +167,20 @@ def _install_from_args(args: argparse.Namespace) -> int:
     )
     try:
         summary = run_local_install(
-            config_path=Path(args.config).expanduser(),
-            template_path=Path(args.template).expanduser(),
+            config_path=_resolve_or_cwd_config(args.config),
+            template_path=resolve_config_path(args.template),
             codex_install_config=install_config,
             install_codex_cli=args.install_codex_cli,
             install_claude_code=args.install_claude_code,
             install_codex_profile_enabled=not args.skip_codex_profile,
             npm_registry=args.npm_registry,
         )
-    except (FileNotFoundError, RuntimeError) as exc:
+    except FileNotFoundError as exc:
         print(f"Error: {exc}", file=sys.stderr)
         return 1
-
+    except RuntimeError as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        return 1
     print(format_install_summary(summary))
     return 0
 
@@ -195,6 +210,7 @@ def _run_from_args(args: argparse.Namespace) -> int:
         model=args.model,
         provider_api=args.provider_api,
         client_protocol=args.client_protocol,
+        reasoning_mode=args.reasoning_mode,
         codex_profile=args.codex_profile,
         codex_env_key=args.codex_env_key,
         codex_api_key=args.codex_api_key,
@@ -233,8 +249,9 @@ def _sync_codex_profile_from_configure_args(
 
 
 def _configure_from_args(args: argparse.Namespace) -> int:
+    config_path = _resolve_or_cwd_config(args.config)
     options = ConfigureOptions(
-        config_path=Path(args.config).expanduser(),
+        config_path=config_path,
         provider=args.provider,
         base_url=args.base_url,
         api_key=args.api_key,
@@ -425,6 +442,11 @@ def main(argv: list[str] | None = None) -> int:
     """Main entry point."""
     called_as = Path(sys.argv[0]).name
     argv = list(sys.argv[1:] if argv is None else argv)
+
+    # When invoked as `agent-bridge`, bare flags like --config imply `start`:
+    #   agent-bridge --config foo.yaml  →  agent-bridge start --config foo.yaml
+    # When invoked as `moma-proxy` or `python -m agent_bridge`, bare flags
+    # run the server directly for backward compatibility.
     if called_as == "agent-bridge" and (not argv or argv[0].startswith("-")):
         if not argv or argv[0] not in {"-h", "--help"}:
             argv = ["start", *argv]
